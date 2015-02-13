@@ -1,0 +1,6 @@
+source "https://rubygems.org/"
+
+gem "certmeister", path: '..'
+gem "certmeister-redis"
+gem "redis"
+gem "rack"

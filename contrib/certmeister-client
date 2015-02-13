@@ -1,0 +1,111 @@
+#!/bin/sh -e
+
+DEFAULT_SERVICE=http://certmeister.hetzner.co.za/certificate
+
+usage() {
+	echo "usage: certmeister-client create /path/to/save/key.pem /path/to/save/crt.pem"
+	echo "       certmeister-client fetch /path/to/save/crt.pem"
+	echo "       certmeister-client remove"
+	echo
+	echo "Environmental overrides:"
+	echo
+	echo "  CERTMEISTER_HOSTNAME name to use as CN in CSR"
+	echo "                       (default: hostname --fqdn)"
+	echo "  CERTMEISTER_SERVICE  the URI prefix of certmeister service"
+	echo "                       (default: $DEFAULT_SERVICE)"
+	exit 1
+}
+
+install_preserving_permissions() {
+	src_file=$1
+	dst_file=$2
+
+	if [ -e "$dst_file" ]; then
+		cat "$src_file" > "$dst_file"
+	else
+		cp "$src_file" "$dst_file"
+	fi
+}
+
+tmp=
+cleanup() {
+	if [ -e "$tmp" ]; then
+		rm -rf "$tmp"
+	fi
+}
+
+umask 0077
+
+type -p curl >/dev/null
+type -p openssl >/dev/null
+perl -MURI::Escape -e 'print uri_escape(" ")' >/dev/null
+hostname=${CERTMEISTER_HOSTNAME:=$(hostname --fqdn)}
+uri=${CERTMEISTER_SERVICE:=$DEFAULT_SERVICE}/$hostname
+
+[ $# -gt 0 ] || usage
+command="$1"
+shift
+
+case "$command" in
+	create)
+		[ $# = 2 ] || usage
+		key_file=$1
+		crt_file=$2
+		tmp=$(mktemp -d -t certmeister.XXXXXX)
+		trap cleanup EXIT
+		echo Creating secret key for $hostname...
+		openssl genrsa -out $tmp/key.pem 4096
+		echo Creating certificate signing request for $hostname...
+		openssl req -new -subj "/C=ZA/ST=Western Cape/L=Cape Town/O=Hetzner PTY Ltd/CN=$hostname" -key $tmp/key.pem -out $tmp/csr.pem
+		csr=$(perl -MURI::Escape -e 'print uri_escape(join("", <STDIN>));' < $tmp/csr.pem)
+		echo Sending signing request to $uri...
+		curl -s -S -L -d "csr=$csr" $uri > $tmp/crt.pem
+		if ! openssl x509 -subject -noout -in $tmp/crt.pem >/dev/null 2>&1; then
+			cat $tmp/crt.pem 1>&2
+			echo 1>&2
+			exit 1
+		fi
+		echo Installing certificate and key...
+		chmod 644 $tmp/crt.pem
+		install_preserving_permissions $tmp/key.pem $key_file
+		install_preserving_permissions $tmp/crt.pem $crt_file
+		cd /
+		rm -rf $tmp
+		echo Done.
+		;;
+	fetch)
+		[ $# = 1 ] || usage
+		crt_file=$1
+		tmp=$(mktemp -d -t certmeister.XXXXXX)
+		trap cleanup EXIT
+		echo Requesting certificate from $uri...
+		curl -s -S $uri > $tmp/crt.pem
+		if ! openssl x509 -subject -noout -in $tmp/crt.pem >/dev/null 2>&1; then
+			cat $tmp/crt.pem 1>&2
+			echo 1>&2
+			exit 1
+		fi
+		echo Installing certificate...
+		chmod 644 $tmp/crt.pem
+		install_preserving_permissions $tmp/crt.pem $crt_file
+		cd /
+		rm -rf $tmp
+		echo Done.
+		;;
+	remove)
+		[ $# = 0 ] || usage
+		echo Sending delete request to $uri...
+		response=$(curl -s -S -X DELETE $uri 2>&1)
+		if ! echo "$response" | grep -q '^200 OK'; then
+			echo error: $response 1>&2
+			echo 1>&2
+			exit 1
+		fi
+		echo Done.
+		;;
+	*)
+		usage
+		;;
+esac
+
+exit 0
