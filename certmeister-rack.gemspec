@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = ["sheldonh@starjuice.net"]
   spec.summary       = %q{Rack application for certmeister}
   spec.description   = %q{This gem provides a rack application to offer an HTTP service around certmeister, the conditional autosigning certificate authority.}
-  spec.homepage      = "https://github.com/sheldonh/certmeister"
+  spec.homepage      = "https://github.com/sheldonh/certmeister-rack"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files -z lib/certmeister spec/certmeister`.split("\x0").grep(/rack/)

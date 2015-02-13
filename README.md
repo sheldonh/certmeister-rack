@@ -1,6 +1,6 @@
 # certmeister-rack
 
-certmeister-rack provides a rack application to offer an HTTP service around certmeister, the conditional autosigning certificate authority.
+certmeister-rack provides a [Rack](http://rack.github.io/) application to offer an HTTP service around [certmeister](https://github.com/sheldonh/certmeister), the conditional autosigning certificate authority.
 
 An example, using redis and rack and enforcing Hetzner PTY Ltd's policy, is available in [contrib/config.ru](contrib/config.ru).
 
