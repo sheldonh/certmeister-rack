@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    certmeister-rack (2.0.1)
+    certmeister-rack (2.1.0)
       certmeister (~> 2.1)
       rack (~> 1.5)
 
