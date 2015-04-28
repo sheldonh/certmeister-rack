@@ -19,6 +19,12 @@ module Certmeister
           else
             method_not_allowed
           end
+        elsif req.path_info == '/ca_cert'
+          if req.request_method == 'GET'
+            ok(@ca.ca_cert_pem, 'application/x-pem-file')
+          else
+            method_not_allowed
+          end
         elsif req.path_info =~ %r{^/certificate/(.+)}
           req.params['cn'] = $1
           req.params['ip'] = req.ip

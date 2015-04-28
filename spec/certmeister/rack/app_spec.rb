@@ -1,5 +1,7 @@
 require 'spec_helper'
 require 'rack/test'
+require 'helpers/certmeister_config_helper'
+require 'openssl'
 
 require 'certmeister'
 require 'certmeister/rack'
@@ -9,7 +11,10 @@ describe Certmeister::Rack::App do
   include Rack::Test::Methods
 
   let(:response) { double(Certmeister::Response).as_null_object }
-  let(:ca) { double(Certmeister::Base, sign: response, fetch: response, remove: response) }
+  let(:ca) do
+    double(Certmeister::Base, ca_cert_pem: CertmeisterConfigHelper.valid_config.ca_cert,
+           sign: response, fetch: response, remove: response)
+  end
   let(:app) { Certmeister::Rack::App.new(ca) }
 
   it "GET /ping always PONGs (although one day we want a health check)" do
@@ -31,6 +36,25 @@ describe Certmeister::Rack::App do
     expect(last_response.status).to eql 501
     expect(last_response.headers['Content-Type']).to eql "text/plain"
     expect(last_response.body).to eql "501 Not Implemented"
+  end
+
+  describe "GET /ca_cert" do
+    before(:each) do
+      get "/ca_cert"
+    end
+
+    it "returns 200 OK" do
+      expect(last_response.status).to eql 200
+    end
+
+    it "provides the PEM-encoded X.509 CA certificate used to sign certificate requests" do
+      ca_cert = OpenSSL::X509::Certificate.new(last_response.body)
+      expect(ca_cert.subject.to_s).to match(/CN=Certmeister Test CA/)
+    end
+
+    it "describes the body as application/x-pem-file" do
+      expect(last_response.headers['Content-Type']).to eql 'application/x-pem-file'
+    end
   end
 
   describe "POST /certificate/:cn" do
