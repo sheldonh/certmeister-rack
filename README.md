@@ -18,3 +18,19 @@ $ curl -L \
 ```
 rake spec
 ```
+
+## Releasing
+
+If you work at Hetzner and need to release new versions of this gem, do this
+(obviously only after making sure the tests run and you have no uncommitted
+changes):
+
+```
+# edit lib/certmeister/rack/version.rb
+bundle
+git commit \
+  -m "Bump version to v$(bundle exec ruby -Ilib -rcertmeister/rack -e 'puts Certmeister::Rack::VERSION')" \
+  Gemfile.lock lib/certmeister/rack/version.rb
+bundle exec rake release
+```
+
