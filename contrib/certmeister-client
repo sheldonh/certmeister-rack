@@ -1,6 +1,6 @@
 #!/bin/sh -e
 
-DEFAULT_SERVICE=http://certmeister.hetzner.co.za/certificate
+DEFAULT_SERVICE=https://certmeister.auto-h.net/certificate
 
 usage() {
 	echo "usage: certmeister-client create /path/to/save/key.pem /path/to/save/crt.pem"
