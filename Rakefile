@@ -1,4 +1,5 @@
 require "rspec/core/rake_task"
+$LOAD_PATH.unshift File.join(File.dirname(__FILE__), 'lib')
 require "certmeister/rack/version"
 
 desc 'Build gem into the pkg directory'
